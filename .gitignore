@@ -1,0 +1,16 @@
+# Laravel
+Coworking-api/.env
+Coworking-api/vendor/
+Coworking-api/storage/*.php
+Coworking-api/public/storage
+Coworking-api/database/*.sqlite
+
+# React
+coworking-app/node_modules/
+coworking-app/dist/
+coworking-app/.env.local
+coworking-app/.env.development.local
+
+# Système
+.DS_Store
+Thumbs.db
