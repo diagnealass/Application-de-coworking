@@ -11,7 +11,7 @@ class SpaceController extends Controller
 {
     public function index()
     {
-        $spaces = Space::with(['equipments', 'reservations.user'])
+        $spaces = Space::with(['equipments', 'reservations.user','images'])
                        ->latest()
                        ->get();
         return SpaceResource::collection($spaces);
@@ -53,7 +53,7 @@ class SpaceController extends Controller
     public function show(Space $space)
     {
         return new SpaceResource(
-            $space->load(['equipments', 'reservations.user'])
+            $space->load(['equipments', 'reservations.user','images'])
         );
     }
 

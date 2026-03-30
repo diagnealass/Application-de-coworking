@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '../../lib/axios'
+import SpaceDetailModal from '../../components/ui/SpaceDetailModal'
 
 interface Equipment {
   id: number
@@ -16,6 +17,7 @@ interface Space {
   price_per_hour: number
   location: string
   status: string
+  images: { id: number; url: string; caption: string; is_cover: boolean }[]
   equipments: Equipment[]
   is_currently_reserved: boolean
   active_reservation: { end_at: string } | null
@@ -25,6 +27,7 @@ interface Space {
 export default function MemberSpaces() {
   const queryClient = useQueryClient()
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null)
+  const [detailSpace, setDetailSpace] = useState<Space | null>(null)
   const [form, setForm] = useState({ start_at: '', end_at: '', notes: '' })
   const [success, setSuccess] = useState('')
 
@@ -75,6 +78,20 @@ export default function MemberSpaces() {
 
   return (
     <div className="space-y-6">
+
+      {/* Modal détail */}
+      {detailSpace && (
+        <SpaceDetailModal
+          space={detailSpace}
+          isAdmin={false}
+          onClose={() => setDetailSpace(null)}
+          onReserve={(space) => {
+            setDetailSpace(null)
+            setSelectedSpace(space)
+          }}
+        />
+      )}
+
       <div>
         <h2 className="text-2xl font-semibold text-gray-800">
           Réserver un espace
@@ -182,15 +199,29 @@ export default function MemberSpaces() {
                 {/* En-tête avec badge */}
                 <div className="flex items-start justify-between">
                   <h3 className="font-medium text-gray-800">{space.name}</h3>
-                  <span
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white ${badge.color}`}
-                  >
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white ${badge.color}`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-pulse" />
                     {badge.label}
                   </span>
                 </div>
 
-                <p className="text-sm text-gray-500">{space.description}</p>
+                <p className="text-sm text-gray-500 line-clamp-2">
+                  {space.description}
+                </p>
+
+                {/* Photo de couverture */}
+                {space.images?.length > 0 && (
+                  <div className="h-36 rounded-lg overflow-hidden">
+                    <img
+                      src={
+                        space.images.find(i => i.is_cover)?.url ??
+                        space.images[0]?.url
+                      }
+                      alt={space.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
 
                 {/* Réservation en cours */}
                 {space.is_currently_reserved && space.active_reservation && (
@@ -217,7 +248,7 @@ export default function MemberSpaces() {
                 </div>
 
                 {/* Équipements */}
-                {space.equipments && space.equipments.length > 0 && (
+                {space.equipments?.length > 0 && (
                   <div className="border-t border-gray-50 pt-3">
                     <p className="text-xs text-gray-400 mb-2">
                       Équipements inclus :
@@ -238,18 +269,24 @@ export default function MemberSpaces() {
                   </div>
                 )}
 
-                {/* Bouton réserver */}
-                <div className="pt-2 border-t border-gray-50">
+                {/* Boutons */}
+                <div className="flex gap-2 pt-2 border-t border-gray-50">
+                  <button
+                    onClick={() => setDetailSpace(space)}
+                    className="flex-1 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors border border-gray-100"
+                  >
+                    Voir les détails
+                  </button>
                   <button
                     onClick={() => badge.canBook && setSelectedSpace(space)}
                     disabled={!badge.canBook}
-                    className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                       badge.canBook
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                   >
-                    {badge.canBook ? 'Réserver cet espace' : badge.label}
+                    {badge.canBook ? 'Réserver' : badge.label}
                   </button>
                 </div>
               </div>

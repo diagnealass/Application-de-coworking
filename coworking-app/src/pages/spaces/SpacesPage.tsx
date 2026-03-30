@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '../../lib/axios'
 import { useAuthStore } from '../../store/authStore'
+import SpaceDetailModal from '../../components/ui/SpaceDetailModal'
 
 interface Equipment {
   id: number
@@ -17,6 +18,7 @@ interface Space {
   price_per_hour: number
   location: string
   status: string
+  images: { id: number; url: string; caption: string; is_cover: boolean }[]
   equipments: (Equipment & { pivot?: { quantity: number } })[]
   is_currently_reserved: boolean
   active_reservation: { end_at: string; user_name: string } | null
@@ -30,8 +32,11 @@ export default function SpacesPage() {
 
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Space | null>(null)
+  const [detailSpace, setDetailSpace] = useState<Space | null>(null)
+
   type SelectedEquipment = { id: number; name: string; quantity: number }
-const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]>([])
+  const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]>([])
+
   const [form, setForm] = useState({
     name: '', description: '', capacity: '',
     price_per_hour: '', location: '', status: 'available',
@@ -44,7 +49,7 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
       const result = res.data
       return (Array.isArray(result) ? result : result.data) as Space[]
     },
-    refetchInterval: 30000, // Rafraîchir toutes les 30 secondes
+    refetchInterval: 30000,
   })
 
   const { data: allEquipments } = useQuery({
@@ -149,35 +154,29 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
 
   const getAvailabilityBadge = (space: Space) => {
     if (space.status === 'maintenance') {
-      return {
-        label: 'Maintenance',
-        color: 'bg-yellow-500',
-        dot: 'bg-yellow-400',
-      }
+      return { label: 'Maintenance',  color: 'bg-yellow-500', dot: 'bg-yellow-400' }
     }
     if (space.status === 'unavailable') {
-      return {
-        label: 'Indisponible',
-        color: 'bg-gray-500',
-        dot: 'bg-gray-400',
-      }
+      return { label: 'Indisponible', color: 'bg-gray-500',   dot: 'bg-gray-400'   }
     }
     if (space.is_currently_reserved) {
-      return {
-        label: 'Réservé',
-        color: 'bg-red-500',
-        dot: 'bg-red-400',
-      }
+      return { label: 'Réservé',      color: 'bg-red-500',    dot: 'bg-red-400'    }
     }
-    return {
-      label: 'Disponible',
-      color: 'bg-green-500',
-      dot: 'bg-green-400',
-    }
+    return   { label: 'Disponible',   color: 'bg-green-500',  dot: 'bg-green-400'  }
   }
 
   return (
     <div className="space-y-6">
+
+      {/* Modal détail */}
+      {detailSpace && (
+        <SpaceDetailModal
+          space={detailSpace}
+          isAdmin={isAdmin}
+          onClose={() => setDetailSpace(null)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-gray-800">Espaces</h2>
@@ -276,13 +275,11 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
               </div>
             </div>
 
-            {/* Sélection des équipements */}
+            {/* Équipements */}
             <div className="border border-gray-100 rounded-lg p-4">
               <p className="text-sm font-medium text-gray-700 mb-3">
                 Équipements de cet espace
               </p>
-
-              {/* Équipements sélectionnés */}
               {selectedEquipments.length > 0 && (
                 <div className="space-y-2 mb-3">
                   {selectedEquipments.map(eq => (
@@ -290,9 +287,7 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
                       key={eq.id}
                       className="flex items-center gap-3 bg-blue-50 rounded-lg px-3 py-2"
                     >
-                      <span className="text-sm text-blue-700 flex-1">
-                        {eq.name}
-                      </span>
+                      <span className="text-sm text-blue-700 flex-1">{eq.name}</span>
                       <span className="text-xs text-blue-500">Qté :</span>
                       <input
                         type="number"
@@ -314,17 +309,11 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
                   ))}
                 </div>
               )}
-
-              {/* Ajouter un équipement */}
               <div>
-                <p className="text-xs text-gray-400 mb-2">
-                  Cliquez pour ajouter :
-                </p>
+                <p className="text-xs text-gray-400 mb-2">Cliquez pour ajouter :</p>
                 <div className="flex flex-wrap gap-2">
                   {allEquipments
-                    ?.filter(
-                      eq => !selectedEquipments.find(e => e.id === eq.id)
-                    )
+                    ?.filter(eq => !selectedEquipments.find(e => e.id === eq.id))
                     .map(eq => (
                       <button
                         key={eq.id}
@@ -373,15 +362,11 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
                 key={space.id}
                 className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-3"
               >
-                {/* En-tête avec badge disponibilité */}
+                {/* En-tête */}
                 <div className="flex items-start justify-between">
                   <h3 className="font-medium text-gray-800">{space.name}</h3>
-                  <span
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white ${badge.color}`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${badge.dot} animate-pulse`}
-                    />
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white ${badge.color}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${badge.dot} animate-pulse`} />
                     {badge.label}
                   </span>
                 </div>
@@ -390,14 +375,23 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
                   {space.description}
                 </p>
 
-                {/* Info réservation en cours */}
+                {/* Photo de couverture si disponible */}
+                {space.images?.length > 0 && (
+                  <div className="h-32 rounded-lg overflow-hidden">
+                    <img
+                      src={space.images.find(i => i.is_cover)?.url ?? space.images[0]?.url}
+                      alt={space.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Réservation en cours */}
                 {space.is_currently_reserved && space.active_reservation && (
                   <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-xs text-red-600">
                     Réservé jusqu'au {space.active_reservation.end_at}
                     {space.active_reservation.user_name && (
-                      <span className="text-red-400">
-                        {' '}par {space.active_reservation.user_name}
-                      </span>
+                      <span className="text-red-400"> par {space.active_reservation.user_name}</span>
                     )}
                   </div>
                 )}
@@ -419,7 +413,7 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
                 </div>
 
                 {/* Équipements */}
-                {space.equipments && space.equipments.length > 0 && (
+                {space.equipments?.length > 0 && (
                   <div className="border-t border-gray-50 pt-3">
                     <p className="text-xs text-gray-400 mb-2">Équipements :</p>
                     <div className="flex flex-wrap gap-1.5">
@@ -438,23 +432,31 @@ const [selectedEquipments, setSelectedEquipments] = useState<SelectedEquipment[]
                   </div>
                 )}
 
-                {/* Actions admin */}
-                {isAdmin && (
-                  <div className="flex gap-2 pt-1 border-t border-gray-50">
-                    <button
-                      onClick={() => handleEdit(space)}
-                      className="flex-1 text-center text-sm text-blue-600 hover:bg-blue-50 py-1.5 rounded-lg transition-colors"
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(space.id)}
-                      className="flex-1 text-center text-sm text-red-500 hover:bg-red-50 py-1.5 rounded-lg transition-colors"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                )}
+                {/* Actions */}
+                <div className="flex gap-2 pt-1 border-t border-gray-50">
+                  <button
+                    onClick={() => setDetailSpace(space)}
+                    className="flex-1 text-center text-sm text-gray-500 hover:bg-gray-50 py-1.5 rounded-lg transition-colors"
+                  >
+                    Détails
+                  </button>
+                  {isAdmin && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(space)}
+                        className="flex-1 text-center text-sm text-blue-600 hover:bg-blue-50 py-1.5 rounded-lg transition-colors"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => deleteMutation.mutate(space.id)}
+                        className="flex-1 text-center text-sm text-red-500 hover:bg-red-50 py-1.5 rounded-lg transition-colors"
+                      >
+                        Supprimer
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             )
           })}

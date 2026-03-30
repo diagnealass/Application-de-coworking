@@ -50,6 +50,19 @@ class SpaceResource extends JsonResource
                 'end_at'   => $nextReservation->end_at->format('Y-m-d H:i'),
             ] : null,
             'created_at' => $this->created_at->format('d/m/Y'),
+                'images' => $this->whenLoaded('images', function () {
+        return $this->images->map(fn($img) => [
+            'id'       => $img->id,
+            'url'      => $img->url,
+            'caption'  => $img->caption,
+            'is_cover' => $img->is_cover,
+        ]);
+    }, []),
+    'cover_image' => $this->whenLoaded('images', function () {
+        $cover = $this->images->where('is_cover', true)->first()
+                ?? $this->images->first();
+        return $cover ? $cover->url : null;
+    }, null),
         ];
     }
 }

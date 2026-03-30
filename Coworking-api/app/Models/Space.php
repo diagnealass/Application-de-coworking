@@ -45,4 +45,14 @@ class Space extends Model
                       });
             })->exists();
     }
+
+    public function images()
+    {
+        return $this->hasMany(SpaceImage::class)->orderBy('is_cover', 'desc');
+    }
+
+    public function coverImage()
+    {
+        return $this->hasOne(SpaceImage::class)->where('is_cover', true);
+    }
 }
